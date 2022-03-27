@@ -1,0 +1,47 @@
+on is_running(app_name)
+	(do shell script "/usr/bin/pgrep " & app_name & " | wc -l") does not contain "0"
+end is_running
+
+on run {input, parameters}
+	set title to "openfortivpn runner"
+  set already_connected to "The connection is already established"
+	if is_running("openfortivpn") then
+    set DIALOG_2 to ¬
+      (display dialog already_connected ¬
+        with title title ¬
+        buttons {"Close connection", "Cancel"} ¬
+        default button 1 ¬
+			)
+    set answer to the button returned of DIALOG_2
+    if answer is "Cancel" then
+      error number -128
+    end if
+	  do shell script "sudo kill -KILL $(/usr/bin/pgrep openfortivpn)" with administrator privileges
+	else
+    set part_of_command to "sudo /opt/homebrew/bin/openfortivpn"
+    set my_name to "Enter the vpn config file name"
+    set conf_path to "/opt/homebrew/etc/openfortivpn/openfortivpn/"
+    set DIALOG_1 to ¬
+      (display dialog my_name ¬
+        with title title ¬
+        default answer ¬
+        "forti1" buttons {"Connect", "Cancel"} ¬
+        default button 1 ¬
+        giving up after 10 ¬
+        )
+    set conf_name to text returned of DIALOG_1
+    set answer to the button returned of DIALOG_1
+    if answer is "Cancel" then
+      error number -128
+    end if
+
+    set command to part_of_command & " -c '" & conf_path & conf_name & "' > /dev/null 2>&1 &"
+    do shell script command with administrator privileges
+    display dialog "The connection is established" ¬
+      with title title ¬
+      buttons {"ok"} ¬
+      default button 1 ¬
+      giving up after 2
+	end if
+	return input
+end run
